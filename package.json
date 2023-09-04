@@ -39,19 +39,24 @@
     "fs-extra": "^8.1.0",
     "happo": "^5.0.0",
     "happo-target-firefox": "^5.1.2",
-    "microbundle": "^0.11.0",
     "opener": "^1.5.1",
-    "pixi.js-legacy": "^5.2.1",
+    "pixi.js-legacy": "^7.2.4",
     "standard-version": "^7.1.0",
-    "typescript": "^3.8.2"
+    "typescript": "^4.8.0",
+    "rollup": "^2.66.1",
+    "rollup-plugin-terser": "^7.0.2",
+    "@rollup/plugin-node-resolve": "^13.1.3",
+    "@rollup/plugin-typescript": "8.3.3",
+    "tslib": "^2.6.2"
   },
   "peerDependencies": {
-    "pixi.js": "^5.2.0"
+    "pixi.js": "^7.2.4"
   },
   "scripts": {
     "demo": "npm run build && opener demo/index.html",
-    "dev": "microbundle watch",
-    "build": "microbundle --name MultiStyleText",
+    "tsc": "tsc",
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
     "prepublishOnly": "npm run build",
     "release": "standard-version",
     "snapshot": "rm -rf happo-snapshots && happo run",
