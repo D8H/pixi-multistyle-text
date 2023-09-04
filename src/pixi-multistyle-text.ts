@@ -7,39 +7,7 @@ if (majorVersion< 5) {
   throw new Error(`Detected Pixi.js version ${PIXI.VERSION}. pixi-multistyle-text supports Pixi.js version 5+. (Please use v0.8.0 for Pixi 4 support.)`);
 }
 
-interface TextStyle {
-  align?: string;
-  breakWords?: boolean;
-  dropShadow?: boolean;
-  dropShadowAlpha?: number;
-  dropShadowAngle?: number;
-  dropShadowBlur?: number;
-  dropShadowColor?: string | number;
-  dropShadowDistance?: number;
-  fill?: string | string[] | number | number[] | CanvasGradient | CanvasPattern;
-  fillGradientType?: number;
-  fillGradientStops?: number[];
-  fontFamily?: string | string[];
-  fontSize?: number | string;
-  fontStyle?: string;
-  fontVariant?: string;
-  fontWeight?: string;
-  leading?: number;
-  letterSpacing?: number;
-  lineHeight?: number;
-  lineJoin?: string;
-  miterLimit?: number;
-  padding?: number;
-  stroke?: string | number;
-  strokeThickness?: number;
-  trim?: boolean;
-  textBaseline?: string;
-  whiteSpace?: string;
-  wordWrap?: boolean;
-  wordWrapWidth?: number;
-}
-
-export interface TextStyleExtended extends TextStyle {
+export interface TextStyleExtended extends Partial<PIXI.ITextStyle> {
 	valign?: "top" | "middle" | "bottom" | "baseline" | number;
 	debug?: boolean;
 	tagStyle?: "xml" | "bbcode";
@@ -96,9 +64,10 @@ export interface TagData {
 	properties: { [key: string]: string };
 }
 
-export interface MstInteractionEvent extends PIXI.interaction.InteractionEvent {
-	targetTag: TagData;
-}
+export type MstInteractionEvent = (
+  | PIXI.FederatedPointerEvent
+  | PIXI.FederatedWheelEvent
+) & { targetTag: TagData };
 
 const INTERACTION_EVENTS = [
 	"pointerover",
@@ -139,6 +108,7 @@ const TAG = {
 	xml: ["<", ">"]
 };
 
+//@ts-ignore
 interface TextWithPrivateMembers extends PIXI.Text {
   dirty: boolean;
   _texture: PIXI.Texture;
@@ -147,6 +117,7 @@ interface TextWithPrivateMembers extends PIXI.Text {
   _generateFillStyle(style: object, lines: string[]): string | number | CanvasGradient;
 }
 
+//@ts-ignore override private method `updateTexture`
 export default class MultiStyleText extends PIXI.Text {
 	private static DEFAULT_TAG_STYLE: TextStyleExtended = {
 		align: "left",
@@ -204,11 +175,11 @@ export default class MultiStyleText extends PIXI.Text {
 		this.styles = styles;
 
 		INTERACTION_EVENTS.forEach((event) => {
-			this.on(event, (e: PIXI.interaction.InteractionEvent) => this.handleInteraction(e));
+			this.on(event as any, e => this.handleInteraction(e as PIXI.FederatedPointerEvent | PIXI.FederatedWheelEvent));
 		});
 	}
 
-	private handleInteraction(e: PIXI.interaction.InteractionEvent) {
+	private handleInteraction(e: PIXI.FederatedPointerEvent | PIXI.FederatedWheelEvent) {
 		let ev = e as MstInteractionEvent;
 
 		let localPoint = e.data.getLocalPosition(this);
@@ -392,6 +363,15 @@ export default class MultiStyleText extends PIXI.Text {
 	}
 
 	private getFontString(style: TextStyleExtended): string {
+		if (style.fill === "") {
+			delete style.fill;
+		}
+		if (style.stroke === "") {
+			delete style.stroke;
+		}
+		if (style.dropShadowColor === "") {
+			delete style.dropShadowColor;
+		}
 		return new PIXI.TextStyle(style).toFontString();
 	}
 
@@ -879,7 +859,7 @@ export default class MultiStyleText extends PIXI.Text {
 		return result;
 	}
 
-	protected updateTexture() {
+	private override updateTexture() {
 		const texture = this.withPrivateMembers()._texture;
 
 		let dropShadowPadding = this.getDropShadowPadding();
